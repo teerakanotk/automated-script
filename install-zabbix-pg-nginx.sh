@@ -42,7 +42,6 @@ ZABBIX_PASSWORD=$(head /dev/urandom | tr -dc A-Za-z0-9_ | head -c 16)
 echo "Generated Zabbix database password: $ZABBIX_PASSWORD" # <--- IMPORTANT: This password will be displayed.
 
 # Create PostgreSQL user and database for Zabbix
-
 # This command creates the user and sets the password NON-INTERACTIVELY.
 sudo -u postgres psql -c "CREATE USER $ZABBIX_USER WITH ENCRYPTED PASSWORD '$ZABBIX_PASSWORD';"
 sudo -u postgres createdb -O "$ZABBIX_USER" -E Unicode -T template0 "$ZABBIX_DB"
@@ -55,7 +54,6 @@ echo "PostgreSQL database and user for Zabbix created successfully."
 
 # Import initial schema and data
 echo "Importing initial Zabbix database schema and data..."
-
 # The user provides 'zabbix-sql-scripts/postgresql/server.sql.gz'
 zcat /usr/share/zabbix-sql-scripts/postgresql/server.sql.gz | sudo -u $ZABBIX_USER psql $ZABBIX_DB
 
