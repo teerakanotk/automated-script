@@ -3,11 +3,11 @@
 ## Download script
 
 ```bash
-curl -O https://raw.githubusercontent.com/teerakanotk/automated-script/main/<script.sh>
+wget https://github.com/teerakanotk/automated-script/raw/main/<script_name>.sh
 ```
 
 ## Run automated script
 
 ```bash
-sudo sh <script.sh>
+sudo sh <script_name>.sh
 ```
