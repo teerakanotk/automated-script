@@ -1,4 +1,6 @@
-# Download script
+# README
+
+## Download script
 
 ```bash
 curl -O https://raw.githubusercontent.com/teerakanotk/automated-script/main/<script.sh>
