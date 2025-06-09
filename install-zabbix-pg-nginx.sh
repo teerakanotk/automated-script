@@ -47,7 +47,7 @@ sudo apt install -y zabbix-agent2-plugin-mongodb zabbix-agent2-plugin-mssql zabb
 echo "Install postgresql-17"
 sudo apt install -y postgresql-common
 # Automatically send 'Enter' to the script to bypass the prompt
-echo "" | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+yes "" | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
 sudo apt install -y postgresql-17
 
 # --- 5. Create initial PostgreSQL database ---
@@ -114,8 +114,8 @@ echo "http://$(hostname -I | awk '{print $1}')/"
 echo ""
 echo "Zabbix database user (zabbix) password: $ZABBIX_PASSWORD"
 echo "Default Zabbix frontend login credentials:"
-echo "  Username: Admin"
-echo "  Password: zabbix"
+echo "  Username: Admin"
+echo "  Password: zabbix"
 echo ""
 echo "Please change the default passwords after first login."
 echo "--------------------------------------------------------"
