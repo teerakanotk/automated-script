@@ -9,25 +9,33 @@
 
 echo "Starting Zabbix Server 7.0 installation with PostgreSQL 17 and Nginx on Ubuntu..."
 
-# --- 1. Update system and install prerequist ---
-echo "Updating system and install prerequist"
+# --- 1. Update system and install prerequisites ---
+echo "Updating system and installing prerequisites..."
+# Using -y to automatically answer yes to prompts
 sudo apt update -y && sudo apt upgrade -y
-sudo apt install -y gnupg gnupg1 gnupg2
+# Install common tools, Nginx, and PHP 8.1 with required modules
+sudo apt install -y curl wget gnupg gnupg1 gnupg2 software-properties-common nginx \
+    php8.1 php8.1-fpm php8.1-pgsql php8.1-gd php8.1-xml php8.1-ldap php8.1-bcmath \
+    php8.1-mbstring php8.1-json php8.1-cli systemd
 
 # --- 2. Install Zabbix repository ---
-echo "Install Zabbix repository"
-wget https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_latest_7.0+ubuntu22.04_all.deb
-dpkg -i zabbix-release_latest_7.0+ubuntu22.04_all.deb
-sudo apt update
+echo "Installing Zabbix repository..."
+wget https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_7.0-1+ubuntu22.04_all.deb
+sudo dpkg -i zabbix-release_7.0-1+ubuntu22.04_all.deb # Added sudo for robustness
+sudo apt update -y
+rm zabbix-release_7.0-1+ubuntu22.04_all.deb # Clean up the downloaded .deb file
 
-# --- 3. Install Zabbix server, frontened, agent2, plugins
-echo "Install Zabbix server, frontend, agent2, plugins"
-sudo apt install -y zabbix-server-pgsql zabbix-frontend-php php8.1-pgsql zabbix-nginx-conf zabbix-sql-scripts zabbix-agent2 zabbix-agent2-plugin-mongodb zabbix-agent2-plugin-mssql zabbix-agent2-plugin-postgresql
+# --- 3. Install Zabbix server, frontend, agent2, plugins ---
+echo "Installing Zabbix server, frontend, agent2, and plugins..."
+sudo apt install -y zabbix-server-pgsql zabbix-frontend-php php8.1-pgsql zabbix-nginx-conf zabbix-sql-scripts zabbix-agent2 \
+    zabbix-agent2-plugin-mongodb zabbix-agent2-plugin-mssql zabbix-agent2-plugin-postgresql
 
-# --- 4. Install postgresql-17 ---
-echo "Install postgresql-17"
+# --- 4. Install PostgreSQL 17 ---
+echo "Installing PostgreSQL 17..."
+# Add PostgreSQL PGDG repository and install PostgreSQL 17
 sudo apt install -y postgresql-common
 sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+sudo apt update -y # Update after adding new repo
 sudo apt install -y postgresql-17
 
 # --- 5. Create initial PostgreSQL database ---
@@ -41,10 +49,11 @@ ZABBIX_USER="zabbix"
 ZABBIX_PASSWORD=$(head /dev/urandom | tr -dc A-Za-z0-9_ | head -c 16)
 echo "Generated Zabbix database password: $ZABBIX_PASSWORD" # <--- IMPORTANT: This password will be displayed.
 
-# Create PostgreSQL user and database for Zabbix
-# This command creates the user and sets the password NON-INTERACTIVELY.
+# Create PostgreSQL user and database for Zabbix NON-INTERACTIVELY.
+# The `psql -c` command directly executes the SQL statement for user creation.
 sudo -u postgres psql -c "CREATE USER $ZABBIX_USER WITH ENCRYPTED PASSWORD '$ZABBIX_PASSWORD';"
-sudo -u postgres psql -c "CREATE DATABASE $ZABBIX_DB OWNER $ZABBIX_USER;"
+# User requested `createdb` with specific encoding and template for database creation.
+sudo -u postgres createdb -O "$ZABBIX_USER" -E Unicode -T template0 "$ZABBIX_DB"
 
 if [ $? -ne 0 ]; then
     echo "Error: Failed to create Zabbix database or user in PostgreSQL. Please check PostgreSQL installation."
@@ -52,10 +61,10 @@ if [ $? -ne 0 ]; then
 fi
 echo "PostgreSQL database and user for Zabbix created successfully."
 
-# Import initial schema and data
+# Import initial schema and data NON-INTERACTIVELY.
 echo "Importing initial Zabbix database schema and data..."
-# The user provides 'zabbix-sql-scripts/postgresql/server.sql.gz'
-zcat /usr/share/zabbix-sql-scripts/postgresql/server.sql.gz | sudo -u $ZABBIX_USER psql $ZABBIX_DB
+# The `zcat ... | sudo -u $ZABBIX_USER psql $ZABBIX_DB` command pipes the schema directly.
+zcat /usr/share/zabbix-sql-scripts/postgresql/server.sql.gz | sudo -u "$ZABBIX_USER" psql "$ZABBIX_DB"
 
 if [ $? -ne 0 ]; then
     echo "Error: Failed to import Zabbix database schema. Please check Zabbix user password or database connection."
@@ -71,20 +80,58 @@ sudo sed -i "s/^# DBName=.*/DBName=$ZABBIX_DB/" /etc/zabbix/zabbix_server.conf
 sudo sed -i "s/^# DBUser=.*/DBUser=$ZABBIX_USER/" /etc/zabbix/zabbix_server.conf
 sudo sed -i "s/^# DBPassword=.*/DBPassword=$ZABBIX_PASSWORD/" /etc/zabbix/zabbix_server.conf
 
-# --- 7. Remove the default Nginx site configuration ---
-echo "Remove the default nginx site configuration"
+# --- 7. Configure PHP for Zabbix Frontend (Nginx with PHP-FPM) ---
+echo "Configuring PHP for Zabbix Frontend..."
+# Zabbix requires specific PHP settings. zabbix-nginx-conf typically handles Nginx config.
+# Ensure timezone is set in php-fpm's php.ini
+PHP_INI_PATH="/etc/php/8.1/fpm/php.ini" # Path for PHP 8.1 FPM
+TIMEZONE="Asia/Bangkok" # <--- IMPORTANT: Change this to your desired timezone
+
+if grep -q "^;date.timezone =" "$PHP_INI_PATH"; then
+    sudo sed -i "s/^;date.timezone =.*/date.timezone = \"$TIMEZONE\"/" "$PHP_INI_PATH"
+else
+    # If the line doesn't exist or is not commented, append it.
+    echo "date.timezone = \"$TIMEZONE\"" | sudo tee -a "$PHP_INI_PATH"
+fi
+
+# --- 8. Configure Nginx to serve Zabbix at root (/) and remove default page ---
+echo "Configuring Nginx to serve Zabbix at / and removing default Nginx page..."
+
+ZABBIX_NGINX_CONF="/etc/nginx/conf.d/zabbix.conf" # Common location for Zabbix Nginx config
+
+# Check if the Zabbix Nginx config exists
+if [ -f "$ZABBIX_NGINX_CONF" ]; then
+    # Change location /zabbix to location /
+    sudo sed -i 's|location /zabbix {|location / {|g' "$ZABABIX_NGINX_CONF"
+    # Ensure alias points to /usr/share/zabbix directly in the root location
+    # This might be tricky as the file might already have alias, ensuring it's for root
+    # We expect 'alias /usr/share/zabbix;' inside the location block, we ensure it's not commenting out
+    sudo sed -i 's|# alias /usr/share/zabbix;|alias /usr/share/zabbix;|g' "$ZABBIX_NGINX_CONF"
+    sudo sed -i 's|alias /usr/share/zabbix/html;|alias /usr/share/zabbix;|g' "$ZABBIX_NGINX_CONF" # Handle variations
+else
+    echo "Warning: Zabbix Nginx configuration file '$ZABBIX_NGINX_CONF' not found. Manual configuration may be required."
+fi
+
+# Remove the default Nginx site configuration
 if [ -f "/etc/nginx/sites-enabled/default" ]; then
     sudo rm /etc/nginx/sites-enabled/default
     echo "Removed default Nginx site configuration."
 fi
 
-# --- 8. Enable and Start Zabbix Services ---
+# --- 9. Enable and Start Zabbix Services ---
 echo "Enabling and starting Zabbix services..."
 sudo systemctl restart zabbix-server zabbix-agent2 nginx php8.1-fpm
 sudo systemctl enable zabbix-server zabbix-agent2 nginx php8.1-fpm
 
 echo "Waiting a few seconds for services to start..."
 sleep 10
+
+# --- 10. Check service status ---
+echo "Checking Zabbix Server, Agent 2, Nginx, and PHP-FPM status..."
+sudo systemctl status zabbix-server --no-pager | grep "Active:"
+sudo systemctl status zabbix-agent2 --no-pager | grep "Active:"
+sudo systemctl status nginx --no-pager | grep "Active:"
+sudo systemctl status php8.1-fpm --no-pager | grep "Active:"
 
 echo ""
 echo "--------------------------------------------------------"
