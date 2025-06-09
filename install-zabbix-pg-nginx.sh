@@ -7,7 +7,11 @@
 # Database: PostgreSQL 17
 # Web Server: Nginx
 
+echo "--------------------------------------------------------"
+echo ""
 echo "Starting Zabbix Server 7.0 installation with PostgreSQL 17 and Nginx on Ubuntu..."
+echo ""
+echo "--------------------------------------------------------"
 
 # --- 1. Update system and install prerequist ---
 echo "Updating system and install prerequist"
@@ -40,14 +44,14 @@ echo "Install Zabbix server, frontend, agent2"
 sudo apt install -y zabbix-server-pgsql zabbix-frontend-php php8.1-pgsql zabbix-nginx-conf zabbix-sql-scripts zabbix-agent2
 
 # Install Zabbix agent 2 plugins
-echo "Install Zabbix agent2 plugins
+echo "Install Zabbix agent2 plugins"
 sudo apt install -y zabbix-agent2-plugin-mongodb zabbix-agent2-plugin-mssql zabbix-agent2-plugin-postgresql
 
 # --- 4. Install postgresql-17 ---
 echo "Install postgresql-17"
 sudo apt install -y postgresql-common
 # Automatically send 'Enter' to the script to bypass the prompt
-yes "" | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+echo | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
 sudo apt install -y postgresql-17
 
 # --- 5. Create initial PostgreSQL database ---
@@ -102,9 +106,6 @@ fi
 echo "Enabling and starting Zabbix services..."
 sudo systemctl restart zabbix-server zabbix-agent2 nginx php8.1-fpm
 sudo systemctl enable zabbix-server zabbix-agent2 nginx php8.1-fpm
-
-echo "Waiting a few seconds for services to start..."
-sleep 10
 
 echo ""
 echo "--------------------------------------------------------"
