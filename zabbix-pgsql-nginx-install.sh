@@ -90,15 +90,12 @@ echo "--- Setting up PostgreSQL database for Zabbix ---"
 ZABBIX_DB="zabbix"
 ZABBIX_USER="zabbix"
 
-echo "  Generating a strong random password for the Zabbix database user..."
 # Generate a strong random password for the Zabbix database user
 # Uses /dev/urandom for randomness, tr to filter for alphanumeric and underscore,
 # and head -c 16 to get a 16-character string.
 ZABBIX_PASSWORD=$(head /dev/urandom | tr -dc A-Za-z0-9_ | head -c 16)
-echo "  [INFO] Generated Zabbix database password: $ZABBIX_PASSWORD" # Print password to console immediately
 echo "ZABBIX_PASSWORD: $ZABBIX_PASSWORD" >> "$LOG_FILE" # Also log the password for later reference
 
-echo "  Creating PostgreSQL user and database for Zabbix..."
 # Create PostgreSQL user and database for Zabbix in a subshell, logging output
 (
     sudo -u postgres psql -c "CREATE USER $ZABBIX_USER WITH ENCRYPTED PASSWORD '$ZABBIX_PASSWORD';"
@@ -113,7 +110,7 @@ if [ $? -ne 0 ]; then
     cat "$LOG_FILE"
     exit 1
 fi
-echo "  [OK] PostgreSQL database and user for Zabbix created successfully."
+echo "  [OK]"
 
 execute_step "Importing initial Zabbix database schema and data" \
     "zcat /usr/share/zabbix-sql-scripts/postgresql/server.sql.gz | sudo -u $ZABBIX_USER psql $ZABBIX_DB"
