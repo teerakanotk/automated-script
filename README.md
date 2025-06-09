@@ -1,5 +1,11 @@
-# Download script and run
+# Download script
 
-```sh
-curl -O https://raw.githubusercontent.com/teerakanotk/automated-script/main/<script.sh> | sudo sh <script.sh>
+```bash
+curl -O https://raw.githubusercontent.com/teerakanotk/automated-script/main/<script.sh>
+```
+
+## Run automated script
+
+```bash
+sudo sh <script.sh>
 ```
