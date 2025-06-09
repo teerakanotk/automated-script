@@ -9,9 +9,10 @@
 
 echo "Starting Zabbix Server 7.0 installation with PostgreSQL 17 and Nginx on Ubuntu..."
 
-# --- 1. Update system ---
-echo "Updating system"
+# --- 1. Update system and install prerequist ---
+echo "Updating system and install prerequist"
 sudo apt update -y && sudo apt upgrade -y
+sudo apt install -y gnupg gnupg1 gnupg2
 
 # --- 2. Install Zabbix repository ---
 echo "Install Zabbix repository"
