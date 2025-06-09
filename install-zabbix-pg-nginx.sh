@@ -47,7 +47,7 @@ sudo apt install -y zabbix-agent2-plugin-mongodb zabbix-agent2-plugin-mssql zabb
 echo "Install postgresql-17"
 sudo apt install -y postgresql-common
 # Automatically send 'Enter' to the script to bypass the prompt
-echo | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+echo "" | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
 sudo apt install -y postgresql-17
 
 # --- 5. Create initial PostgreSQL database ---
