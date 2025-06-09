@@ -97,10 +97,8 @@ sudo sed -i "s/^# DBPassword=.*/DBPassword=$ZABBIX_PASSWORD/" /etc/zabbix/zabbix
 
 # --- 7. Remove the default Nginx site configuration ---
 echo "Remove the default nginx site configuration"
-if [ -f "/etc/nginx/sites-enabled/default" ]; then
-    sudo rm /etc/nginx/sites-enabled/default
-    echo "Removed default Nginx site configuration."
-fi
+sudo rm /etc/nginx/sites-enabled/default
+sudo rm /etc/nginx/sites-available/default
 
 # --- 8. Enable and Start Zabbix Services ---
 echo "Enabling and starting Zabbix services..."
