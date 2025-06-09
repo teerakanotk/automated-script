@@ -21,13 +21,18 @@ sudo dpkg -i zabbix-release_latest_7.0+ubuntu22.04_all.deb
 sudo apt update
 
 # --- 3. Install Zabbix server, frontened, agent2, plugins
-echo "Install Zabbix server, frontend, agent2, plugins"
-sudo apt install -y zabbix-server-pgsql zabbix-frontend-php php8.1-pgsql zabbix-nginx-conf zabbix-sql-scripts zabbix-agent2 \ zabbix-agent2-plugin-mongodb zabbix-agent2-plugin-mssql zabbix-agent2-plugin-postgresql
+echo "Install Zabbix server, frontend, agent2"
+sudo apt install -y zabbix-server-pgsql zabbix-frontend-php php8.1-pgsql zabbix-nginx-conf zabbix-sql-scripts zabbix-agent2
+
+# Install Zabbix agent 2 plugins
+echo "Install Zabbix agent2 plugins
+sudo apt install -y zabbix-agent2-plugin-mongodb zabbix-agent2-plugin-mssql zabbix-agent2-plugin-postgresql
 
 # --- 4. Install postgresql-17 ---
 echo "Install postgresql-17"
 sudo apt install -y postgresql-common
-sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+# Automatically send 'Enter' to the script to bypass the prompt
+yes "" | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
 sudo apt install -y postgresql-17
 
 # --- 5. Create initial PostgreSQL database ---
