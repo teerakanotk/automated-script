@@ -3,7 +3,7 @@
 # Zabbix server auto-installation script for Ubuntu with PostgreSQL 17 and Nginx
 # Author: Teerakan + Gemini
 # Date: 2025-06-09
-# Zabbix Version: 7.0
+# Zabbix Version: 7.0 LTS
 # Database: PostgreSQL 17
 # Web Server: Nginx
 
@@ -14,11 +14,26 @@ echo "Updating system and install prerequist"
 sudo apt update -y && sudo apt upgrade -y
 sudo apt install -y gnupg gnupg1 gnupg2
 
+# --- 1.1. Configure Locales to en_US.UTF-8 ---
+echo "Configuring system locale to en_US.UTF-8..."
+# Uncomment en_US.UTF-8 in /etc/locale.gen
+sudo sed -i 's/^# \(en_US\.UTF-8 UTF-8\)$/\1/' /etc/locale.gen
+# Generate locales
+sudo locale-gen
+# Set system-wide locale
+sudo update-locale LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
+# Apply locale settings to the current shell session for immediate effect
+export LANG=en_US.UTF-8
+export LANGUAGE=en_US:en
+export LC_ALL=en_US.UTF-8
+echo "Locale set to en_US.UTF-8"
+
 # --- 2. Install Zabbix repository ---
 echo "Install Zabbix repository"
 wget https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_latest_7.0+ubuntu22.04_all.deb
 sudo dpkg -i zabbix-release_latest_7.0+ubuntu22.04_all.deb
 sudo apt update
+sudo rm zabbix-release_latest_7.0+ubuntu22.04_all.deb
 
 # --- 3. Install Zabbix server, frontened, agent2, plugins
 echo "Install Zabbix server, frontend, agent2"
@@ -32,7 +47,7 @@ sudo apt install -y zabbix-agent2-plugin-mongodb zabbix-agent2-plugin-mssql zabb
 echo "Install postgresql-17"
 sudo apt install -y postgresql-common
 # Automatically send 'Enter' to the script to bypass the prompt
-yes "" | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+echo | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
 sudo apt install -y postgresql-17
 
 # --- 5. Create initial PostgreSQL database ---
@@ -44,7 +59,7 @@ ZABBIX_USER="zabbix"
 # Uses /dev/urandom for randomness, tr to filter for alphanumeric and underscore,
 # and head -c 16 to get a 16-character string.
 ZABBIX_PASSWORD=$(head /dev/urandom | tr -dc A-Za-z0-9_ | head -c 16)
-echo "Generated Zabbix database password: $ZABBIX_PASSWORD" # <--- IMPORTANT: This password will be displayed.
+echo "Generated Zabbix database password: $ZABBIX_PASSWORD"
 
 # Create PostgreSQL user and database for Zabbix
 # This command creates the user and sets the password NON-INTERACTIVELY.
