@@ -94,11 +94,6 @@ execute_step 9 "sudo rm -f /etc/nginx/sites-enabled/default && sudo rm -f /etc/n
 
 execute_step 10 "sudo systemctl restart zabbix-server zabbix-agent2 nginx php8.1-fpm && sudo systemctl enable zabbix-server zabbix-agent2 nginx php8.1-fpm"
 
-# --- Installation Completion Summary ---
-# Move cursor to the line after the last checklist item before printing summary
-tput cup $((CHECKLIST_START_ROW + NUM_STEPS)) 0
-tput el # Clear the line to ensure it's empty
-
 echo "========================================================"
 echo ""
 echo "You can now access the Zabbix frontend via your web browser:"
