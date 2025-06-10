@@ -33,11 +33,11 @@ function execute_step() {
             # First, move cursor below the checklist to print the error message
             tput cup $((CHECKLIST_START_ROW + NUM_STEPS + 1)) 0 # +1 for a blank line after checklist
             tput el # Clear the line
-            echo -e "Error: Step '$step_name' failed! Please check the log file ($LOG_FILE) for details."
+            echo "Error: Step '$step_name' failed! Please check the log file ($LOG_FILE) for details."
             tput el # Clear the line
-            echo -e "--------------------------------------------------------------------------------"
+            echo "--------------------------------------------------------------------------------"
             tput el # Clear the line
-            echo -e "Full installation log for review:"
+            echo "Full installation log for review:"
             cat "$LOG_FILE" # Display the log file content for immediate review
             exit 1 # Exit the script with an error code
         fi
@@ -47,16 +47,16 @@ function execute_step() {
 
 # --- Main Script Execution Starts Here ---
 
-echo -e "========================================================"
+echo "========================================================"
 echo ""
-echo -e "Starting Zabbix Server 7.0 installation"
-echo -e "Detailed installation progress and logs are being written to:"
-echo -e "  $LOG_FILE"
+echo "Starting Zabbix Server 7.0 installation"
+echo "Detailed installation progress and logs are being written to:"
+echo "  $LOG_FILE"
 echo ""
-echo -e "========================================================"
+echo "========================================================"
 
 echo ""
-echo -e "Executing..."
+echo "Executing..."
 echo ""
 # --- Execute Installation Steps ---
 # Call execute_step for each phase of the installation, passing the step index, command, and allow_failure if needed.
@@ -99,19 +99,19 @@ execute_step 10 "sudo systemctl restart zabbix-server zabbix-agent2 nginx php8.1
 tput cup $((CHECKLIST_START_ROW + NUM_STEPS)) 0
 tput el # Clear the line to ensure it's empty
 
-echo -e "========================================================"
+echo "========================================================"
 echo ""
-echo -e "You can now access the Zabbix frontend via your web browser:"
-echo -e "  http://$(hostname -I | awk '{print $1}')/"
+echo "You can now access the Zabbix frontend via your web browser:"
+echo "  http://$(hostname -I | awk '{print $1}')/"
 echo ""
-echo -e "Zabbix database connection"
-echo -e "  Username: Admin"
-echo -e "  password: $ZABBIX_PASSWORD$"
+echo "Zabbix database connection"
+echo "  Username: Admin"
+echo "  password: $ZABBIX_PASSWORD$"
 echo ""
-echo -e "Default Zabbix frontend login credentials:"
-echo -e "  Username: Admin"
-echo -e "  Password: zabbix"
+echo "Default Zabbix frontend login credentials:"
+echo "  Username: Admin"
+echo "  Password: zabbix"
 echo ""
-echo -e "Please change the default passwords after the first login."
+echo "Please change the default passwords after the first login."
 echo ""
-echo -e "========================================================"
+echo "========================================================"
