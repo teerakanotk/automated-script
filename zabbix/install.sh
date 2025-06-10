@@ -7,100 +7,9 @@
 # Database: PostgreSQL 17
 # Web Server: Nginx
 
-# --- Define ANSI Color Codes ---
-RED='\033[0;31m'    # Error / Failed
-GREEN='\033[0;32m'  # Success / OK
-YELLOW='\033[0;33m' # Warning / Info / In Progress
-BLUE='\033[0;34m'   # Step Headers
-NC='\033[0m'        # No Color (reset)
-
 # Define log file path for detailed output
 LOG_FILE="/tmp/zabbix_install_$(date +%Y%m%d%H%M%S).log"
 
-# --- Zabbix Installation Steps (Installation Step Headings) ---
-# Each element in this array corresponds to a step in the installation process.
-# This list will be displayed as a checklist in the terminal.
-STEPS=(
-    "1. Update system and install prerequisites"
-    "2. Configure system locale to en_US.UTF-8"
-    "3. Install Zabbix Repository"
-    "4. Install Zabbix Server, Frontend, and Agent2"
-    "5. Install Zabbix Agent2 Plugins"
-    "6. Install PostgreSQL 17"
-    "7. Create Zabbix user and database in PostgreSQL"
-    "8. Import initial Zabbix database schema and data"
-    "9. Configure Zabbix Server"
-    "10. Remove Nginx Default Site configuration"
-    "11. Enable and Start Zabbix services"
-)
-NUM_STEPS=${#STEPS[@]} # Calculate total number of steps
-
-# Global array to store current status of each step:
-# 0 = pending (not started)
-# 1 = in_progress (running)
-# 2 = ok (successful)
-# 3 = failed (failed)
-declare -a STEP_STATUS
-
-# Global variable to store the starting row of the checklist in the terminal.
-# This will be determined dynamically to ensure correct cursor positioning.
-CHECKLIST_START_ROW=0
-
-# Function to initialize all step statuses to 'pending' (0)
-function initialize_step_statuses() {
-    for ((i=0; i<$NUM_STEPS; i++)); do
-        STEP_STATUS[$i]=0 # Initialize all steps as pending
-    done
-}
-
-# Function to draw or redraw the entire checklist in the terminal.
-# It uses tput for cursor positioning to update the checklist in place.
-function draw_checklist() {
-    # Save current cursor position before modifying the display
-    tput sc
-
-    # Move cursor to the starting row of the checklist (0-indexed)
-    tput cup $CHECKLIST_START_ROW 0
-
-    for ((i=0; i<$NUM_STEPS; i++)); do
-        local status_char=" " # Default pending character
-        local color="${NC}"   # Default pending color
-
-        # Determine the character and color based on the step's current status
-        case ${STEP_STATUS[$i]} in
-            0) status_char=" "; color="${NC}";;      # Pending
-            1) status_char=">"; color="${YELLOW}";;  # In Progress (using '>' instead of gear icon)
-            2) status_char="✓"; color="${GREEN}";;  # OK (Checkmark)
-            3) status_char="x"; color="${RED}";;    # Failed (X mark)
-        esac
-
-        # Clear the current line to ensure no leftover characters from previous prints
-        tput el
-        # Print the updated status and step name
-        echo -e "[${color}${status_char}${NC}] ${STEPS[$i]}"
-    done
-
-    # Restore cursor to its original position before draw_checklist was called
-    tput rc
-}
-
-# Function to update a single item's status in the checklist and then redraw the entire checklist.
-# Arguments:
-#   $1: step_index (0-based index of the step in the STEPS array)
-#   $2: new_status (0=pending, 1=in_progress, 2=ok, 3=failed)
-function update_checklist_item() {
-    local step_index="$1"
-    local new_status="$2"
-
-    STEP_STATUS[$step_index]=$new_status # Update the status in the global array
-    draw_checklist                       # Redraw the entire checklist to reflect the change
-}
-
-# Function to execute a command and update the checklist's status accordingly.
-# Arguments:
-#   $1: step_index (0-based index of the step in the STEPS array)
-#   $2: command (The actual shell command to execute)
-#   $3: allow_failure (Optional, 'true' if the script should continue even if this step fails)
 function execute_step() {
     local step_index="$1"
     local command="$2"
@@ -111,15 +20,10 @@ function execute_step() {
     echo "--- $step_name ---" >> "$LOG_FILE"
     echo "[$step_name] Command: $command" >> "$LOG_FILE"
 
-    # Update the checklist item to 'in_progress' status
-    update_checklist_item "$step_index" 1
-
     # Execute the command. Redirect all stdout and stderr to the log file.
     # This prevents the command's verbose output from cluttering the terminal
     # and interfering with the checklist UI.
     if eval "$command" >> "$LOG_FILE" 2>&1; then
-        # If command succeeds, update checklist item to 'OK' status
-        update_checklist_item "$step_index" 2
         return 0 # Indicate success
     else
         # If command fails, update checklist item to 'FAILED' status
@@ -129,11 +33,11 @@ function execute_step() {
             # First, move cursor below the checklist to print the error message
             tput cup $((CHECKLIST_START_ROW + NUM_STEPS + 1)) 0 # +1 for a blank line after checklist
             tput el # Clear the line
-            echo -e "${RED}Error: Step '$step_name' failed. Please check the log file (${YELLOW}$LOG_FILE${RED}) for details.${NC}"
+            echo -e "Error: Step '$step_name' failed! Please check the log file ($LOG_FILE) for details."
             tput el # Clear the line
-            echo -e "${BLUE}--------------------------------------------------------${NC}"
+            echo -e "--------------------------------------------------------------------------------"
             tput el # Clear the line
-            echo -e "${YELLOW}Full installation log for review:${NC}"
+            echo -e "Full installation log for review:"
             cat "$LOG_FILE" # Display the log file content for immediate review
             exit 1 # Exit the script with an error code
         fi
@@ -143,35 +47,17 @@ function execute_step() {
 
 # --- Main Script Execution Starts Here ---
 
-echo -e "${BLUE}--------------------------------------------------------${NC}"
+echo -e "========================================================"
 echo ""
-echo -e "${GREEN}Starting Zabbix Server 7.0 installation with PostgreSQL 17 and Nginx on Ubuntu...${NC}"
-echo -e "Detailed installation progress and logs are being written to: ${YELLOW}$LOG_FILE${NC}"
+echo -e "Starting Zabbix Server 7.0 installation"
+echo -e "Detailed installation progress and logs are being written to:"
+echo -e "  $LOG_FILE"
 echo ""
-echo -e "${BLUE}--------------------------------------------------------${NC}"
+echo -e "========================================================"
 
-# --- Initial Confirmation ---
-echo -e "${YELLOW}Warning: This script will perform system updates and install Zabbix server, PostgreSQL 17, and Nginx.${NC}"
-read -p "Do you want to proceed with the installation? (y/N): " -n 1 -r
-echo # Move to a new line after user input
-if [[ ! $REPLY =~ ^[Yy]$ ]]
-then
-    echo -e "${RED}Installation cancelled by user.${NC}"
-    exit 1
-fi
-echo "" # Blank line before the checklist starts drawing
-
-# Calculate the starting row for the checklist dynamically.
-# Count lines printed before this point:
-# 1 (border) + 1 (blank) + 1 (start msg) + 1 (log path) + 1 (blank) + 1 (border) + 1 (blank) + 1 (warning) + 1 (read prompt) + 1 (blank after read) = 10 lines (0-indexed rows 0-9).
-# So, the checklist will start at row 10 (0-indexed).
-CHECKLIST_START_ROW=10
-
-# Initialize all step statuses to pending
-initialize_step_statuses
-# Draw the initial checklist with empty boxes for all steps
-draw_checklist
-
+echo ""
+echo -e "Executing..."
+echo ""
 # --- Execute Installation Steps ---
 # Call execute_step for each phase of the installation, passing the step index, command, and allow_failure if needed.
 execute_step 0 "sudo apt update -y && sudo apt upgrade -y && sudo apt install -y gnupg gnupg1 gnupg2"
@@ -213,28 +99,19 @@ execute_step 10 "sudo systemctl restart zabbix-server zabbix-agent2 nginx php8.1
 tput cup $((CHECKLIST_START_ROW + NUM_STEPS)) 0
 tput el # Clear the line to ensure it's empty
 
-echo -e "${GREEN}--------------------------------------------------------${NC}"
-tput el # Clear before printing
-echo -e "${GREEN}Zabbix 7.0 installation completed!${NC}"
-tput el # Clear before printing
-echo -e "You can now access the Zabbix frontend via your web browser:${NC}"
-tput el # Clear before printing
-echo -e "  ${YELLOW}http://$(hostname -I | awk '{print $1}')/${NC}"
-tput el # Clear before printing
+echo -e "========================================================"
 echo ""
-tput el # Clear before printing
-echo -e "${YELLOW}Zabbix database user (zabbix) password: ${RED}$ZABBIX_PASSWORD${NC}"
-tput el # Clear before printing
-echo -e "${YELLOW}Default Zabbix frontend login credentials:${NC}"
-tput el # Clear before printing
-echo -e "  ${YELLOW}Username: Admin${NC}"
-tput el # Clear before printing
-echo -e "  ${YELLOW}Password: zabbix${NC}"
-tput el # Clear before printing
+echo -e "You can now access the Zabbix frontend via your web browser:"
+echo -e "  http://$(hostname -I | awk '{print $1}')/"
 echo ""
-tput el # Clear before printing
-echo -e "${RED}Please change the default passwords after the first login.${NC}"
-tput el # Clear before printing
-echo -e "${GREEN}--------------------------------------------------------${NC}"
-tput el # Clear before printing
+echo -e "Zabbix database connection"
+echo -e "  Username: Admin"
+echo -e "  password: $ZABBIX_PASSWORD$"
 echo ""
+echo -e "Default Zabbix frontend login credentials:"
+echo -e "  Username: Admin"
+echo -e "  Password: zabbix"
+echo ""
+echo -e "Please change the default passwords after the first login."
+echo ""
+echo -e "========================================================"
